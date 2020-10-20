@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchQuizQuestions } from './API';
 //components
 import QuestionCard from './components/QuestionCard';
@@ -24,7 +24,34 @@ function App() {
   const [userAnswers, setUserAnswers] = useState<AnswerObject[]>([]);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(true);
+  const [highScore, setHighScore] = useState("0"); // high score for local storage
+  const [timerSec, setTimerSec] = useState(5);
+  const [showTimer, setShowTimer] = useState(false);
 
+    // useEffect 
+  //- check the high score from local storage
+  useEffect(() => {
+    const savedHighScore = localStorage.getItem("quizHighScore");
+    if (savedHighScore) setHighScore(savedHighScore);
+  }, []);
+  
+  // const timer = () => {
+  //   let timeRun = 5;
+  //   setShowTimer(true);
+  //   setInterval(() => {
+  //     timeRun--;
+  //     setTimerSec((timerSec) => timerSec - 1);
+  //     console.log("timer: ", timerSec);
+  //     console.log("timeRun: ", timeRun);
+  //     while (timeRun === 0) {
+  //       setGameOver(true);
+  //       setShowTimer(false);
+  //       debugger
+  //       clearInterval();
+  //     }
+
+  //   }, 500);
+  // }
 
   const startTrivia = async () => {
 
@@ -41,20 +68,28 @@ function App() {
     setUserAnswers([]);
     setNumber(0);
     setLoading(false);
+    
+    // timer();
 
   };
 
   const checkAnswer = (e: React.MouseEvent<HTMLButtonElement>) => {
+    
+    //users answer
+    const answer = e.currentTarget.value;
+
+    //check answer against correct answer
+    const correct = questions[number].correct_answer === answer;
+
+    // add score if answer is correct
+    if (correct) setScore(prev => prev + 1);
+     //sets high score
+     if (score > Number(highScore)) {
+      setHighScore(score.toString())
+      localStorage.setItem("quizHighScore", score.toString())
+    }
+
     if (!gameOver) {
-
-      //users answer
-      const answer = e.currentTarget.value;
-
-      //check answer against correct answer
-      const correct = questions[number].correct_answer === answer;
-
-      // add score if answer is correct
-      if (correct) setScore(prev => prev + 1);
 
       // save answer in the array for users answers
       const answerObject: AnswerObject = {
@@ -63,12 +98,18 @@ function App() {
         correct,
         correctAnswer: questions[number].correct_answer
       };
+
       setUserAnswers((prev) => [...prev, answerObject]);
     }
   };
 
   const nextQuestion = () => {
-    // move on to the next question if not the last
+       // sets high score
+        if (score > Number(highScore)) {
+          setHighScore(score.toString())
+          localStorage.setItem("quizHighScore", score.toString())
+        }
+    //   move on to the next question if not the last
     const nextQuestion = number + 1;
     if (nextQuestion === TOTAL_QUESTIONS) {
       setGameOver(true);
@@ -82,11 +123,11 @@ function App() {
       <GloabalStyle />
       <Wrapper>
         <h1>React Quiz</h1>
-
         {gameOver || userAnswers.length === TOTAL_QUESTIONS ? (
           <button className="start" onClick={startTrivia}>Start</button>
         ) : null}
-
+        {showTimer && <p>Timer: {timerSec}`S</p>}
+        {highScore ? <p className="highScore">High Score: {highScore}</p> : null}
         {!gameOver ? <p className="score">Score: {score}</p> : null}
         {loading && <p>Loading Questions...</p>}
         {!loading && !gameOver && (
